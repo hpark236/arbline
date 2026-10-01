@@ -1,0 +1,9 @@
+{
+  "name": "arbline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-venue odds scanner: Polymarket and Kalshi prediction markets vs a sportsbook",
+  "scripts": { "test": "node --test test/*.test.js", "dev": "vercel dev" },
+  "engines": { "node": ">=20" }
+}
