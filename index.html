@@ -3,329 +3,138 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arbline · prediction markets vs the sportsbook</title>
-<meta name="description" content="Live cross-venue odds scanner. Polymarket and Kalshi moneylines against a DraftKings line, fee-adjusted, with depth-aware arbitrage sizing.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 fill=%22%23141412%22/%3E%3Cpath d=%22M6 22h20M6 14h20%22 stroke=%22%23f3d34a%22 stroke-width=%223%22/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --paper:#f1efe7; --paper2:#e8e5da; --ink:#141412; --mute:#6f6c63; --line:#cfcabb;
-  --win:#0b7a4b; --winbg:#d8eadf; --loss:#a5402d; --hl:#f3d34a;
-  --cond:'Barlow Condensed',sans-serif; --mono:'JetBrains Mono',monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{background:var(--paper)}
-body{background:var(--paper);color:var(--ink);font:13px/1.55 var(--mono);-webkit-font-smoothing:antialiased;min-height:100vh}
-a{color:inherit}
-.wrap{max-width:1280px;margin:0 auto;padding:0 24px}
-header.top{border-bottom:2px solid var(--ink);padding:18px 0 14px}
-.brandrow{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.brand{font:800 34px/1 var(--cond);letter-spacing:.02em;text-transform:uppercase}
-.brand span{color:var(--mute);font-weight:500}
-.meta{color:var(--mute);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}
-
-/* the headline number */
-.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;padding:34px 0 30px;border-bottom:1px solid var(--line);align-items:end}
-.big{font:700 clamp(84px,13vw,176px)/.82 var(--cond);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-.big small{font-size:.32em;color:var(--mute);font-weight:500;letter-spacing:.02em;margin-left:.2em}
-.biglabel{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--mute);margin-bottom:10px}
-.heroR p{max-width:52ch;font-size:13.5px;line-height:1.7}
-.heroR p+p{margin-top:10px;color:var(--mute)}
-.stats{display:flex;gap:28px;margin-top:20px;flex-wrap:wrap}
-.stat b{display:block;font:700 30px/1 var(--cond)}
-.stat span{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--mute)}
-
-/* controls */
-.controls{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:5}
-.seg{display:flex;border:1.5px solid var(--ink)}
-.seg button{font:600 15px/1 var(--cond);letter-spacing:.06em;text-transform:uppercase;padding:7px 13px;background:none;border:0;cursor:pointer;color:var(--ink)}
-.seg button+button{border-left:1.5px solid var(--ink)}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
-.ctl-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--mute)}
-.spacer{flex:1}
-#refresh{font:500 11px var(--mono);background:none;border:1.5px solid var(--ink);padding:7px 10px;cursor:pointer}
-#refresh:hover{background:var(--ink);color:var(--paper)}
-
-/* board */
-.board{width:100%;border-collapse:collapse;margin:6px 0 40px;font-variant-numeric:tabular-nums}
-.board th{font:600 12.5px/1 var(--cond);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);text-align:right;padding:12px 10px 8px;border-bottom:1.5px solid var(--ink);white-space:nowrap}
-.board th:first-child,.board td:first-child{text-align:left;padding-left:0}
-.board td{padding:10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle;white-space:nowrap}
-.board tbody tr{cursor:pointer}
-.board tbody tr:hover td{background:var(--paper2)}
-.board tbody tr.sel td{background:#e3dfd0}
-.match{display:flex;align-items:center;gap:10px}
-.match img{width:22px;height:22px;object-fit:contain}
-.teams{font:600 19px/1.05 var(--cond);letter-spacing:.02em}
-.teams em{font-style:normal;color:var(--mute);font-weight:500;padding:0 3px}
-.when{margin-top:5px;font-size:10.5px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
-.lg{font:700 11px/1 var(--cond);letter-spacing:.1em;border:1px solid var(--ink);padding:3px 4px 2px;margin-right:2px}
-.q{display:inline-grid;grid-template-columns:auto auto;gap:0 8px;text-align:right}
-.q span{font-size:12.5px}
-.q span.best{background:var(--hl);padding:0 3px}
-.q .na{color:var(--line)}
-.sum{font:700 22px/1 var(--cond);letter-spacing:.01em}
-.sum.arb{color:var(--win)}
-.gap{font-size:11px;color:var(--mute)}
-.gap.arb{color:var(--win);font-weight:700}
-.bar{display:inline-block;width:72px;height:6px;background:var(--paper2);position:relative;vertical-align:middle;margin-left:8px}
-.bar i{position:absolute;inset:0 auto 0 0;background:var(--ink)}
-.empty{padding:60px 0;color:var(--mute);text-align:left}
-
-/* drawer */
-.drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--paper);border-left:2px solid var(--ink);transform:translateX(102%);transition:transform .32s cubic-bezier(.16,1,.3,1);z-index:20;overflow-y:auto;padding:22px 26px 40px}
-.drawer.open{transform:none}
-.drawer h2{font:700 36px/1 var(--cond);letter-spacing:.01em;text-transform:uppercase;margin:6px 0 4px}
-.close{position:absolute;top:16px;right:18px;font:600 14px var(--cond);letter-spacing:.1em;background:none;border:1.5px solid var(--ink);padding:5px 9px;cursor:pointer}
-.sec{margin-top:24px;padding-top:14px;border-top:1px solid var(--line)}
-.sec h3{font:600 14px/1 var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-bottom:10px}
-.vt{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.vt td,.vt th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right;font-size:12px}
-.vt th{font:600 12px var(--cond);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
-.vt td:first-child,.vt th:first-child{text-align:left}
-.calc{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
-.calc label{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--mute);display:block;margin-bottom:4px}
-.calc input,.calc select{width:100%;font:500 14px var(--mono);padding:8px;border:1.5px solid var(--ink);background:#fbfaf6;color:var(--ink)}
-.out{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
-.out div{border:1.5px solid var(--ink);padding:10px}
-.out b{display:block;font:700 26px/1 var(--cond)}
-.out span{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mute)}
-.pos{color:var(--win)} .neg{color:var(--loss)}
-.fair{display:grid;grid-template-columns:90px 1fr 54px;gap:6px 10px;align-items:center;font-size:12px}
-.fair .track{height:14px;background:var(--paper2);position:relative}
-.fair .track i{position:absolute;top:0;bottom:0;left:0;background:var(--ink)}
-.fair .track b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--loss)}
-.note{font-size:11.5px;color:var(--mute);line-height:1.65}
-.note li{margin:0 0 6px 16px}
-.depthout{font-size:12px;line-height:1.7}
-.scrim{position:fixed;inset:0;background:rgba(20,20,18,.18);opacity:0;pointer-events:none;transition:opacity .25s;z-index:15}
-.scrim.on{opacity:1;pointer-events:auto}
-
-footer{border-top:2px solid var(--ink);padding:22px 0 50px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;color:var(--mute);font-size:11.5px;line-height:1.7}
-footer h4{font:600 14px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-bottom:6px}
-code{font:500 11.5px var(--mono);background:var(--paper2);padding:1px 4px}
-
-@media (max-width:860px){
-  .wrap{padding:0 16px}
-  .hero{grid-template-columns:1fr;gap:18px}
-  .board .hide-m{display:none}
-  .board td,.board th{padding:9px 6px}
-  .teams{font-size:16px}
-  .q{grid-template-columns:auto}
-}
-</style>
+<title>Arbline</title>
+<meta name="description" content="Compares tennis and golf prices on Polymarket, Kalshi and Pinnacle and flags two-leg arbitrage.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div class="brandrow">
-      <div class="brand">Arbline <span>/ cross-venue moneyline scanner</span></div>
-      <div class="meta" id="updated">loading venues</div>
-    </div>
-  </header>
+<h1>Arbline</h1>
+<p class="desc">Compares tennis and golf prices on Polymarket, Kalshi and Pinnacle. Every price is the cost, including fees, of a contract that pays $1. If backing a player to win on one venue and not to win on another costs less than $1 in total, the profit is locked in.</p>
 
-  <section class="hero">
-    <div>
-      <div class="biglabel">Tightest two-leg price on the board right now</div>
-      <div class="big" id="bigSum">-.---</div>
-      <div class="meta" id="bigWhat" style="margin-top:12px">&nbsp;</div>
-    </div>
-    <div class="heroR">
-      <p>Every upcoming NFL, MLB, NBA and NHL game, priced three ways: Polymarket, Kalshi, and the DraftKings line. Each number is what it costs, fees included, to own a claim that pays $1 if that team wins.</p>
-      <p>Buy the cheapest claim on each side. If the two add up to less than $1.000, the payout is locked whoever wins. Under 1.000 is an arbitrage; anything above it is the price of disagreement between venues.</p>
-      <div class="stats">
-        <div class="stat"><b id="sGames">-</b><span>games matched</span></div>
-        <div class="stat"><b id="sThree">-</b><span>on all three</span></div>
-        <div class="stat"><b id="sArbs">-</b><span>under 1.000</span></div>
-        <div class="stat"><b id="sSpread">-</b><span>widest split, pts</span></div>
-      </div>
-    </div>
-  </section>
+<p class="controls">
+  <button data-tab="tennis" class="on">Tennis</button>
+  <button data-tab="golf">Golf</button>
+  <span class="muted" id="updated">Loading…</span>
+</p>
+<p id="summary"></p>
 
-  <div class="controls">
-    <div class="seg" id="leagues" role="group" aria-label="League">
-      <button aria-pressed="true" data-l="all">All</button><button aria-pressed="false" data-l="nfl">NFL</button><button aria-pressed="false" data-l="mlb">MLB</button><button aria-pressed="false" data-l="nba">NBA</button><button aria-pressed="false" data-l="nhl">NHL</button>
-    </div>
-    <span class="ctl-label">Sort</span>
-    <div class="seg" id="sort" role="group" aria-label="Sort">
-      <button aria-pressed="true" data-s="sum">Closest to arb</button><button aria-pressed="false" data-s="spread">Disagreement</button><button aria-pressed="false" data-s="time">Start time</button>
-    </div>
-    <div class="spacer"></div>
-    <button id="refresh" title="Auto-refreshes every 30s">Refresh</button>
-  </div>
+<div id="tennis"></div>
+<div id="golf" hidden></div>
 
-  <table class="board" aria-label="Games">
-    <thead><tr>
-      <th>Game</th><th>DraftKings</th><th>Polymarket</th><th>Kalshi</th><th>Best pair</th><th class="hide-m">Gap</th><th class="hide-m">Venues disagree</th>
-    </tr></thead>
-    <tbody id="rows"><tr><td colspan="7" class="empty">Pulling three order books…</td></tr></tbody>
-  </table>
+<div id="detail" hidden></div>
 
-  <footer>
-    <div><h4>How a price is built</h4>
-      Sportsbook: 1 / decimal odds of the DraftKings moneyline (via ESPN's public scoreboard). Polymarket: best ask on the CLOB plus the taker fee <code>C × rate × p × (1−p)</code>, rate read from each market's fee schedule. Kalshi: best of YES on the team or NO on the opponent, plus <code>0.07 × p × (1−p)</code>.</div>
-    <div><h4>What a sub-1.000 pair does not tell you</h4>
-      Sportsbook limits and account restrictions, a 1-cent-per-order Kalshi fee round-up, settlement timing, and rule mismatch (NFL ties push at the book; prediction markets resolve them by their own rules). Open a game to size the trade by real order-book depth.</div>
-    <div><h4>Source</h4>
-      Vanilla JS, two serverless functions, no keys. Math lives in <code>lib/core.js</code> with unit tests. <a href="https://github.com/hpark236/arbline">github.com/hpark236/arbline</a>. Built by <a href="https://sunghanpark.vercel.app">Sunghan Park</a>. Not betting advice.</div>
-  </footer>
-</div>
-
-<div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" aria-hidden="true">
-  <button class="close" id="close">Close</button>
-  <div id="dBody"></div>
-</aside>
+<h2>Notes</h2>
+<ul class="small">
+  <li>Pinnacle prices are converted from American odds (1 / decimal odds). Pinnacle only offers "to win", so its prices appear in the Yes column.</li>
+  <li>Polymarket fee: shares × rate × p × (1 − p), using each market's rate. Kalshi fee: 0.07 × p × (1 − p), rounded up to the cent per order.</li>
+  <li>In tennis, "player does not win" can also be bought as the opponent winning.</li>
+  <li>Golf lists players priced at 1% or more. A sum under 1.000 does not account for sportsbook limits, settlement timing, or differences in how venues settle retirements and withdrawals.</li>
+</ul>
+<p class="small muted">Source: <a href="https://github.com/hpark236/arbline">github.com/hpark236/arbline</a></p>
 
 <script type="module">
-import { stakePlan, walkDepth, kalshiFee, polyFee, decimalToAmerican } from './lib/core.js';
+import { stakePlan, walkDepth, kalshiFee, polyFee } from './lib/core.js';
 
-const VN = { book: 'DraftKings', poly: 'Polymarket', kalshi: 'Kalshi' };
-const state = { games: [], league: 'all', sort: 'sum', sel: null };
+const VN = { pinnacle: 'Pinnacle', poly: 'Polymarket', kalshi: 'Kalshi' };
 const $ = s => document.querySelector(s);
-const c3 = x => (x == null || !isFinite(x)) ? '' : x.toFixed(3);
-const cents = x => (x * 100).toFixed(1) + '¢';
-const pct = x => (x * 100).toFixed(2) + '%';
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const when = iso => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const f3 = x => (x == null || !isFinite(x)) ? '' : x.toFixed(3);
+const when = iso => iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+let data = null, tab = 'tennis';
 
 async function load() {
-  $('#refresh').textContent = 'Refreshing…';
   try {
-    const r = await fetch('/api/board');
-    const j = await r.json();
-    state.games = j.games || [];
-    $('#updated').textContent = 'Updated ' + new Date(j.updated).toLocaleTimeString() + ' · refreshes every 30s';
+    data = await fetch('/api/board').then(r => r.json());
+    $('#updated').textContent = 'Updated ' + new Date(data.updated).toLocaleTimeString() + ', refreshes every 30s';
     render();
-    if (state.sel) { const g = state.games.find(x => x.key === state.sel); if (g) openGame(g, false); }
-  } catch (e) {
-    $('#updated').textContent = 'Feed error, retrying';
-  } finally { $('#refresh').textContent = 'Refresh'; }
+  } catch { $('#updated').textContent = 'Could not load prices.'; }
 }
 
-function filtered() {
-  const gs = state.games.filter(g => state.league === 'all' || g.league === state.league);
-  const k = { sum: g => g.analysis.best?.sum ?? 9, spread: g => -g.analysis.spreadPts, time: g => +new Date(g.start) }[state.sort];
-  return gs.sort((a, b) => k(a) - k(b));
-}
-
-function cell(g, v) {
-  const q = g.venues[v];
-  if (!q) return '<span class="q"><span class="na">no market</span></span>';
-  const a = g.analysis;
-  const ba = a.bestA?.venue === v ? 'best' : '', bb = a.bestB?.venue === v ? 'best' : '';
-  return `<span class="q"><span class="${ba}">${c3(q.a.cost)}</span><span class="${bb}">${c3(q.b.cost)}</span></span>`;
-}
+const cell = (o, v, side) => { const q = o.venues[v]?.[side]; return q ? f3(q.cost) : '<span class="muted">-</span>'; };
+const sumCell = b => b ? `<span class="${b.isArb ? 'pos' : ''}">${b.sum.toFixed(4)}</span>` : '';
+const legs = b => b ? `Yes on ${VN[b.yes.venue]}, ${b.no.via === 'opponent' ? 'opponent' : 'No'} on ${VN[b.no.venue]}` : '';
 
 function render() {
-  const gs = filtered();
-  const all = state.games;
-  $('#sGames').textContent = all.length;
-  $('#sThree').textContent = all.filter(g => g.quoted === 3).length;
-  $('#sArbs').textContent = all.filter(g => g.analysis.best?.isArb).length;
-  $('#sSpread').textContent = all.length ? Math.max(...all.map(g => g.analysis.spreadPts)).toFixed(1) : '-';
-  const top = [...all].sort((a, b) => (a.analysis.best?.sum ?? 9) - (b.analysis.best?.sum ?? 9))[0];
-  if (top) {
-    const b = top.analysis.best;
-    $('#bigSum').innerHTML = b.sum.toFixed(4).replace(/^0/, '0') + `<small>${b.isArb ? 'arb' : '+' + b.gapCents.toFixed(2) + '¢'}</small>`;
-    $('#bigSum').style.color = b.isArb ? 'var(--win)' : '';
-    $('#bigWhat').textContent = `${top.away.short} @ ${top.home.short} · ${top.away.code} on ${VN[b.legA]}, ${top.home.code} on ${VN[b.legB]}`;
-  }
-  const maxSpread = Math.max(5, ...gs.map(g => g.analysis.spreadPts));
-  $('#rows').innerHTML = gs.length ? gs.map(g => {
-    const b = g.analysis.best;
-    return `<tr data-k="${esc(g.key)}" class="${state.sel === g.key ? 'sel' : ''}">
-      <td><div class="match"><img src="${esc(g.away.logo)}" alt="" loading="lazy"><img src="${esc(g.home.logo)}" alt="" loading="lazy">
-        <div><div class="teams">${esc(g.away.code)}<em>@</em>${esc(g.home.code)}</div><div class="when"><span class="lg">${g.league.toUpperCase()}</span> ${when(g.start)}</div></div></div></td>
-      <td>${cell(g, 'book')}</td><td>${cell(g, 'poly')}</td><td>${cell(g, 'kalshi')}</td>
-      <td><span class="sum ${b?.isArb ? 'arb' : ''}">${b ? b.sum.toFixed(4) : '-'}</span></td>
-      <td class="hide-m"><span class="gap ${b?.isArb ? 'arb' : ''}">${b ? (b.isArb ? '+' + pct(b.roi) + ' locked' : b.gapCents.toFixed(2) + '¢ over') : ''}</span></td>
-      <td class="hide-m">${g.analysis.spreadPts.toFixed(1)} pts<span class="bar"><i style="width:${Math.min(100, g.analysis.spreadPts / maxSpread * 100)}%"></i></span></td>
-    </tr>`;
-  }).join('') : '<tr><td colspan="7" class="empty">No games in this league are quoted on two venues right now.</td></tr>';
+  const all = [...data.tennis.flatMap(e => e.outcomes), ...data.golf.flatMap(e => e.outcomes)];
+  const arbs = all.filter(o => o.best?.isArb).length;
+  const best = all.map(o => o.best?.sum).filter(Boolean).sort((a, b) => a - b)[0];
+  $('#summary').textContent = `${data.tennis.length} tennis matches and ${data.golf.length} golf tournaments on at least two venues. ${arbs} pairing${arbs === 1 ? '' : 's'} under 1.000. Lowest sum: ${best ? best.toFixed(4) : '-'}.`;
+
+  $('#tennis').innerHTML = data.tennis.length ? `<table><thead><tr><th class="l">Match</th><th class="l">Player</th><th>Pinnacle</th><th>Polymarket</th><th>Kalshi yes</th><th>Kalshi no</th><th>Best sum</th><th class="l">Legs</th></tr></thead><tbody>${
+    data.tennis.map((e, i) => e.outcomes.map((o, j) => `<tr data-k="t${i}:${j}">
+      ${j === 0 ? `<td class="l" rowspan="2">${esc(e.name)}<br><span class="muted small">${when(e.start)}</span></td>` : ''}
+      <td class="l">${esc(o.name)}</td><td>${cell(o, 'pinnacle', 'yes')}</td><td>${cell(o, 'poly', 'yes')}</td><td>${cell(o, 'kalshi', 'yes')}</td><td>${cell(o, 'kalshi', 'no')}</td>
+      <td>${sumCell(o.best)}</td><td class="l small">${legs(o.best)}</td></tr>`).join('')).join('')}</tbody></table>` : '<p>No tennis matches are listed on two venues right now.</p>';
+
+  $('#golf').innerHTML = data.golf.length ? data.golf.map((e, i) => `<h3>${esc(e.tour)}: ${esc(e.name)} <span class="muted small">(${e.analysis.venues.map(v => VN[v]).join(', ')})</span></h3>
+    <table><thead><tr><th class="l">Player</th><th>Pinnacle</th><th>Polymarket yes</th><th>Polymarket no</th><th>Kalshi yes</th><th>Kalshi no</th><th>Best sum</th><th class="l">Legs</th></tr></thead><tbody>${
+      e.outcomes.slice(0, 40).map((o, j) => `<tr data-k="g${i}:${j}"><td class="l">${esc(o.name)}</td><td>${cell(o, 'pinnacle', 'yes')}</td><td>${cell(o, 'poly', 'yes')}</td><td>${cell(o, 'poly', 'no')}</td><td>${cell(o, 'kalshi', 'yes')}</td><td>${cell(o, 'kalshi', 'no')}</td><td>${sumCell(o.best)}</td><td class="l small">${legs(o.best)}</td></tr>`).join('')}</tbody></table>`).join('')
+    : '<p>No golf tournament-winner markets are listed on two venues right now.</p>';
 }
 
-function openGame(g, fresh = true) {
-  state.sel = g.key;
-  const a = g.analysis, b = a.best;
-  const rows = ['book', 'poly', 'kalshi'].map(v => {
-    const q = g.venues[v];
-    if (!q) return `<tr><td>${VN[v]}</td><td colspan="4" style="color:var(--line)">not listed</td></tr>`;
-    const am = q.a.american ? ` (${q.a.american} / ${q.b.american})` : '';
-    return `<tr><td>${VN[v]}${am ? `<br><span class="note">${am}</span>` : ''}</td><td>${cents(q.a.price)}</td><td>${cents(q.a.fee)}</td><td>${cents(q.b.price)}</td><td>${cents(q.b.fee)}</td></tr>`;
-  }).join('');
-  const fair = a.fair.map(f => `<span>${VN[f.venue]}</span><span class="track"><i style="width:${f.pA * 100}%"></i></span><span>${pct(f.pA)}</span>`).join('');
-  const pairs = a.pairs.slice(0, 6).map(p => `<tr><td>${g.away.code} on ${VN[p.legA]}</td><td>${g.home.code} on ${VN[p.legB]}</td><td>${p.sum.toFixed(4)}</td><td class="${p.isArb ? 'pos' : ''}">${p.isArb ? '+' + pct(p.roi) : p.gapCents.toFixed(2) + '¢'}</td></tr>`).join('');
-  $('#dBody').innerHTML = `
-    <div class="meta"><span class="lg">${g.league.toUpperCase()}</span> ${when(g.start)}</div>
-    <h2>${esc(g.away.name)} <span style="color:var(--mute)">at</span> ${esc(g.home.name)}</h2>
-    <div class="sec"><h3>Prices per $1 claim</h3>
-      <table class="vt"><tr><th>Venue</th><th>${esc(g.away.code)}</th><th>fee</th><th>${esc(g.home.code)}</th><th>fee</th></tr>${rows}</table></div>
-    <div class="sec"><h3>Every pairing, cheapest first</h3>
-      <table class="vt"><tr><th>Back ${esc(g.away.code)}</th><th>Back ${esc(g.home.code)}</th><th>Sum</th><th>Edge</th></tr>${pairs}</table></div>
-    <div class="sec"><h3>Stake splitter</h3>
-      <div class="calc">
-        <div><label>Bankroll ($)</label><input id="bank" type="number" min="1" value="1000"></div>
-        <div><label>Pairing</label><select id="pair">${a.pairs.map((p, i) => `<option value="${i}">${VN[p.legA]} / ${VN[p.legB]} · ${p.sum.toFixed(4)}</option>`).join('')}</select></div>
-      </div>
-      <div class="out" id="out"></div>
-      <div class="depthout" id="depth" style="margin-top:12px"></div></div>
-    <div class="sec"><h3>Implied chance ${esc(g.away.code)} wins</h3><div class="fair">${fair}</div>
-      <p class="note" style="margin-top:8px">DraftKings is de-vigged proportionally (margin ${g.venues.book ? pct(g.venues.book.overround) : 'n/a'}). Markets use mid price. A wide split with no arb usually means one venue is stale or thin.</p></div>
-    <div class="sec"><h3>Before you trade it</h3><ul class="note">
-      <li>Sportsbook stakes are limited and winning accounts get restricted. The calculator assumes the quoted line fills in full.</li>
-      <li>Kalshi rounds each order's fee up to the next cent, so tiny orders cost more than shown.</li>
-      <li>Resolution rules differ. Read both venues' rules for postponements and ties before treating a pair as risk-free.</li>
-      <li>Capital is locked until settlement, often days for prediction markets.</li></ul>
-      <p class="note">${g.venues.poly ? `<a href="${esc(g.venues.poly.url)}" target="_blank" rel="noopener">Polymarket market ↗</a> &nbsp; ` : ''}${g.venues.kalshi ? `<a href="${esc(g.venues.kalshi.url)}" target="_blank" rel="noopener">Kalshi series ↗</a>` : ''}</p></div>`;
+function pick(k) {
+  const [kind, idx] = [k[0], k.slice(1).split(':').map(Number)];
+  const ev = (kind === 't' ? data.tennis : data.golf)[idx[0]];
+  return { ev, o: ev.outcomes[idx[1]] };
+}
+
+function showDetail(k) {
+  const { ev, o } = pick(k);
+  if (!o.pairs?.length) return;
+  const d = $('#detail'); d.hidden = false;
+  d.innerHTML = `<h2>${esc(o.name)} <span class="muted small">${esc(ev.name)}</span></h2>
+    <table><thead><tr><th class="l">Yes leg</th><th class="l">No leg</th><th>Yes</th><th>No</th><th>Sum</th><th>Return</th></tr></thead><tbody>${
+      o.pairs.slice(0, 8).map(p => `<tr><td class="l">${VN[p.yes.venue]}</td><td class="l">${VN[p.no.venue]}${p.no.via === 'opponent' ? ' (opponent wins)' : ''}</td><td>${f3(p.yes.cost)}</td><td>${f3(p.no.cost)}</td><td>${p.sum.toFixed(4)}</td><td class="${p.isArb ? 'pos' : ''}">${(p.roi * 100).toFixed(2)}%</td></tr>`).join('')}</tbody></table>
+    <p>Stake: $<input id="bank" type="number" value="1000" min="1" style="width:100px"> on the cheapest pairing.</p>
+    <p id="split"></p><p id="depth" class="small"></p>
+    <p class="small muted">Implied chance ${esc(o.name)} wins: ${Object.entries(o.implied).map(([v, p]) => `${VN[v]} ${(p * 100).toFixed(1)}%`).join(', ')}</p>
+    <p><button id="closeD">Close</button></p>`;
+  const p = o.pairs[0];
   const calc = () => {
-    const p = a.pairs[+$('#pair').value]; if (!p) return;
-    const ca = g.venues[p.legA].a.cost, cb = g.venues[p.legB].b.cost;
-    const s = stakePlan(Math.max(0, +$('#bank').value || 0), ca, cb);
-    $('#out').innerHTML = `<div><b>$${s.stakeA.toFixed(2)}</b><span>${esc(g.away.code)} on ${VN[p.legA]}</span></div><div><b>$${s.stakeB.toFixed(2)}</b><span>${esc(g.home.code)} on ${VN[p.legB]}</span></div><div><b class="${s.profit >= 0 ? 'pos' : 'neg'}">${s.profit >= 0 ? '+' : '−'}$${Math.abs(s.profit).toFixed(2)}</b><span>either way</span></div>`;
-    depth(g, p);
+    const s = stakePlan(Math.max(0, +$('#bank').value || 0), p.yes.cost, p.no.cost);
+    $('#split').innerHTML = `$${s.stakeA.toFixed(2)} on Yes (${VN[p.yes.venue]}) and $${s.stakeB.toFixed(2)} on No (${VN[p.no.venue]}). Payout $${s.payout.toFixed(2)} either way, so <span class="${s.profit >= 0 ? 'pos' : 'neg'}">${s.profit >= 0 ? 'profit' : 'loss'} of $${Math.abs(s.profit).toFixed(2)}</span>.`;
   };
-  $('#bank').oninput = calc; $('#pair').onchange = calc; calc();
-  $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('on');
-  document.querySelectorAll('#rows tr').forEach(tr => tr.classList.toggle('sel', tr.dataset.k === g.key));
+  $('#bank').oninput = calc; calc();
+  $('#closeD').onclick = () => { d.hidden = true; };
+  depth(ev, o, p);
+  d.scrollIntoView({ behavior: 'smooth' });
 }
 
-// Fetch the real ask ladders for both legs and size the trade by depth.
-let depthSeq = 0;
-async function depth(g, p) {
-  const seq = ++depthSeq;
+// Size the cheapest pairing by the live order books (Pinnacle is treated as unlimited at its price).
+async function depth(ev, o, p) {
   const el = $('#depth');
-  const ladder = async (venue, side) => {
-    const q = g.venues[venue];
-    if (venue === 'book') return { asks: [[q[side].price, Infinity]], fee: () => 0 };
-    if (venue === 'poly') {
-      const r = await fetch(`/api/depth?venue=poly&id=${q.tokens[side]}`).then(r => r.json());
-      return { asks: r.asks, fee: x => polyFee(x, q.feeRate) };
+  const opp = ev.sport === 'tennis' ? ev.outcomes.find(x => x !== o) : null;
+  const ladder = async (leg, isNo) => {
+    const src = leg.via === 'opponent' ? opp.venues[leg.venue] : o.venues[leg.venue];
+    if (leg.venue === 'pinnacle') return { asks: [[leg.price, Infinity]], fee: () => 0 };
+    if (leg.venue === 'poly') {
+      const token = isNo && leg.via === 'no' ? src.noToken : src.token;
+      if (!token) return null;
+      const r = await fetch(`/api/depth?venue=poly&id=${token}`).then(r => r.json());
+      return { asks: r.asks, fee: x => polyFee(x, src.feeRate || 0) };
     }
-    const [dir, ticker] = q[side].via.split(' ');
-    const r = await fetch(`/api/depth?venue=kalshi&id=${ticker}&side=${dir.toLowerCase()}`).then(r => r.json());
+    const side = isNo && leg.via === 'no' ? 'no' : 'yes';
+    const r = await fetch(`/api/depth?venue=kalshi&id=${src.ticker}&side=${side}`).then(r => r.json());
     return { asks: r.asks, fee: x => kalshiFee(x) };
   };
-  if (p.legA === 'book' && p.legB === 'book') { el.textContent = ''; return; }
-  el.innerHTML = '<span class="note">Reading order books…</span>';
+  if (p.yes.venue === 'pinnacle' && p.no.venue === 'pinnacle') return;
+  el.textContent = 'Checking order books…';
   try {
-    const [A, B] = await Promise.all([ladder(p.legA, 'a'), ladder(p.legB, 'b')]);
-    if (seq !== depthSeq) return;
+    const [A, B] = await Promise.all([ladder(p.yes, false), ladder(p.no, true)]);
+    if (!A || !B || !A.asks.length || !B.asks.length) { el.textContent = 'Order book not available for this pairing.'; return; }
     const w = walkDepth(A.asks, B.asks, A.fee, B.fee);
-    el.innerHTML = w.claims > 0
-      ? `<b class="pos">Depth check:</b> ${Math.floor(w.claims).toLocaleString()} claims fill below $1.000. Cost $${w.cost.toFixed(2)}, locked profit $${w.profit.toFixed(2)} (${pct(w.roi)}) across ${w.fills.length} price level${w.fills.length > 1 ? 's' : ''}.`
-      : `<b>Depth check:</b> the cheapest executable pair right now is ${A.asks[0] && B.asks[0] ? (A.asks[0][0] + A.fee(A.asks[0][0]) + B.asks[0][0] + B.fee(B.asks[0][0])).toFixed(4) : 'n/a'} at top of book, so no size fills below $1.000.`;
-  } catch { if (seq === depthSeq) el.innerHTML = '<span class="note">Order book unavailable right now.</span>'; }
+    el.textContent = w.claims > 0
+      ? `Order books: ${Math.floor(w.claims).toLocaleString()} contracts can be bought below $1.000, for a profit of $${w.profit.toFixed(2)}.`
+      : `Order books: no size is available below $1.000 at the moment.`;
+  } catch { el.textContent = 'Order book not available.'; }
 }
 
-function closeDrawer() { state.sel = null; $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); $('#scrim').classList.remove('on'); document.querySelectorAll('#rows tr.sel').forEach(t => t.classList.remove('sel')); }
-$('#rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-k]'); if (tr) openGame(state.games.find(g => g.key === tr.dataset.k)); });
-$('#close').onclick = closeDrawer; $('#scrim').onclick = closeDrawer;
-addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
-const seg = (id, key) => $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); state[key] = b.dataset.l || b.dataset.s; render(); });
-seg('#leagues', 'league'); seg('#sort', 'sort');
-$('#refresh').onclick = load;
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]');
+  if (b) { tab = b.dataset.tab; document.querySelectorAll('button[data-tab]').forEach(x => x.classList.toggle('on', x === b)); $('#tennis').hidden = tab !== 'tennis'; $('#golf').hidden = tab !== 'golf'; return; }
+  const tr = e.target.closest('tr[data-k]'); if (tr) showDetail(tr.dataset.k);
+});
 load(); setInterval(load, 30000);
 </script>
 </body>

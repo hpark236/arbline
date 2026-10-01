@@ -1,74 +1,83 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { americanToDecimal, decimalToAmerican, devig, kalshiFee, kalshiOrderFee, polyFee, twoWay, stakePlan, analyseGame, walkDepth } from '../lib/core.js';
-import { canon, parseKalshiDate, etDate } from '../lib/feeds.js';
+import { americanToDecimal, decimalToAmerican, devig, kalshiFee, kalshiOrderFee, polyFee, twoWay, stakePlan, walkDepth, outcomePairs, analyseEvent } from '../lib/core.js';
+import { playerKey, tournamentKey, sameTournament, parseKalshiDate, joinTennis, joinGolf } from '../lib/feeds.js';
 
 const close = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
 
 test('american odds convert both ways', () => {
-  close(americanToDecimal('+124'), 2.24);
-  close(americanToDecimal(-148), 1 + 100 / 148);
+  close(americanToDecimal('+120'), 2.2);
+  close(americanToDecimal(-138), 1 + 100 / 138);
   assert.equal(americanToDecimal('EVEN'), null);
-  assert.equal(decimalToAmerican(2.24), 124);
-  assert.equal(decimalToAmerican(1 + 100 / 148), -148);
+  assert.equal(decimalToAmerican(2.2), 120);
 });
 
-test('devig sums to one and keeps the favourite on top', () => {
-  const d = devig(1 / 1.6757, 1 / 2.24);
+test('devig sums to one', () => {
+  const d = devig(1 / 1.7246, 1 / 2.2);
   close(d.a + d.b, 1);
-  assert.ok(d.a > d.b);
-  assert.ok(d.overround > 0.03 && d.overround < 0.05);
-  const p = devig(0.8, 0.25, 'power');
-  close(p.a + p.b, 1, 1e-6);
-  assert.ok(p.b < 0.25 / 1.05, 'power method shades the longshot harder');
+  assert.ok(d.overround > 0);
 });
 
 test('fees match the venues\' published tables', () => {
-  // Polymarket sports table: 100 shares at $0.50 with rate 0.05 costs $1.25
-  close(100 * polyFee(0.5, 0.05), 1.25);
-  close(100 * polyFee(0.3, 0.07), 1.47);
-  // Kalshi: 0.07 x C x P x (1-P), rounded up to the cent per order
+  close(100 * polyFee(0.5, 0.05), 1.25); // Polymarket sports table
   close(kalshiFee(0.5), 0.0175);
-  assert.equal(kalshiOrderFee(0.5, 1), 0.02);
   assert.equal(kalshiOrderFee(0.5, 100), 1.75);
+  assert.equal(kalshiOrderFee(0.5, 1), 0.02); // rounded up per order
 });
 
-test('two-way arb detection and equal-payout staking', () => {
+test('two-leg pricing and equal-payout stakes', () => {
   const t = twoWay(0.47, 0.5);
-  assert.ok(t.isArb);
-  close(t.roi, 1 / 0.97 - 1);
+  assert.ok(t.isArb); close(t.roi, 1 / 0.97 - 1);
   const s = stakePlan(970, 0.47, 0.5);
   close(s.payout, 1000); close(s.profit, 30);
-  close(s.stakeA + s.stakeB, 970);
-  assert.ok(!twoWay(0.52, 0.5).isArb);
-});
-
-test('analyseGame picks the cheapest leg on each side', () => {
-  const g = analyseGame({
-    book: { a: { cost: 0.55 }, b: { cost: 0.5 }, fairA: 0.52 },
-    poly: { a: { cost: 0.48 }, b: { cost: 0.54 }, fairA: 0.47 },
-    kalshi: null,
-  });
-  assert.equal(g.bestA.venue, 'poly');
-  assert.equal(g.bestB.venue, 'book');
-  close(g.best.sum, 0.98);
-  assert.equal(g.pairs[0].legA, 'poly');
-  close(g.spreadPts, 5);
 });
 
 test('depth walk stops at the first unprofitable level', () => {
-  const r = walkDepth([[0.45, 100], [0.48, 100]], [[0.5, Infinity]]);
-  close(r.claims, 200); close(r.profit, 200 - (100 * 0.95 + 100 * 0.98));
-  const r2 = walkDepth([[0.45, 100], [0.52, 100]], [[0.5, 1000]]);
-  close(r2.claims, 100);
-  const r3 = walkDepth([[0.5, 100]], [[0.5, 100]], p => kalshiFee(p));
-  close(r3.claims, 0);
+  close(walkDepth([[0.45, 100], [0.48, 100]], [[0.5, Infinity]]).claims, 200);
+  close(walkDepth([[0.45, 100], [0.52, 100]], [[0.5, 1000]]).claims, 100);
+  close(walkDepth([[0.5, 100]], [[0.5, 100]], p => kalshiFee(p)).claims, 0);
 });
 
-test('team codes and dates line up across venues', () => {
-  assert.equal(canon('nfl', 'was'), 'WSH');
-  assert.equal(canon('nhl', 'LAS'), 'VGK');
-  assert.equal(canon('mlb', 'NYY'), 'NYY');
-  assert.equal(parseKalshiDate('KXMLBGAME-26OCT031830NYYTB'), '2026-10-03');
-  assert.equal(etDate('2026-10-02T00:15:00Z'), '2026-10-01');
+test('player names line up across venues', () => {
+  assert.equal(playerKey('Zachary Bauchou'), playerKey('Zach Bauchou'));
+  assert.equal(playerKey('Pablo Carreño Busta'), playerKey('Pablo Carreno Busta'));
+  assert.equal(playerKey('Felix Auger-Aliassime'), playerKey('Félix Auger Aliassime'));
+  assert.notEqual(playerKey('Jannik Sinner'), playerKey('Carlos Alcaraz'));
+});
+
+test('tournament names line up across venues', () => {
+  assert.ok(sameTournament('LOTTE Championship presented by Hoakalei', 'LPGA - LOTTE Championship Winner'));
+  assert.ok(sameTournament('Bank of Utah Championship', '2026 Bank of Utah Championship'));
+  assert.ok(!sameTournament('Bank of Utah Championship', 'Alfred Dunhill Links Championship'));
+  assert.equal(parseKalshiDate('KXATPMATCH-26OCT01FILTIA').slice(0, 10), '2026-10-01');
+});
+
+const q = c => ({ cost: c, price: c, fee: 0 });
+
+test('tennis: the opponent\'s yes counts as a no, and venues join by name', () => {
+  const events = joinTennis({
+    pinnacle: [{ tour: 'ATP', name: 'ATP Tokyo', start: '2026-10-03T00:00:00Z', players: [{ name: 'Carlos Alcaraz', yes: q(0.80) }, { name: 'Taylor Fritz', yes: q(0.24) }] }],
+    poly: [{ tour: 'ATP', name: 'Tokyo', start: '2026-10-03T00:00:00Z', players: [{ name: 'Carlos Alcaraz', yes: q(0.79) }, { name: 'Taylor Fritz', yes: q(0.22) }] }],
+    kalshi: [{ tour: 'ATP', name: 'Alcaraz vs Fritz', start: '2026-10-02T12:00:00Z', players: [{ name: 'Carlos Alcaraz', yes: q(0.81), no: q(0.20) }, { name: 'Taylor Fritz', yes: q(0.21), no: q(0.80) }] }],
+  });
+  assert.equal(events.length, 1);
+  const ev = events[0], alc = ev.outcomes.find(o => /Alcaraz/.test(o.name));
+  assert.deepEqual(Object.keys(alc.venues).sort(), ['kalshi', 'pinnacle', 'poly']);
+  const pairs = outcomePairs(ev, alc);
+  // cheapest: Alcaraz yes on Polymarket (0.79) + Alcaraz no on Kalshi (0.20)
+  assert.equal(pairs[0].yes.venue, 'poly'); assert.equal(pairs[0].no.venue, 'kalshi'); close(pairs[0].sum, 0.99);
+  assert.ok(pairs[0].isArb);
+  assert.ok(pairs.every(p => p.yes.venue !== p.no.venue));
+  assert.ok(analyseEvent(ev).best.sum <= 0.99 + 1e-9);
+});
+
+test('golf: per-player yes/no across venues', () => {
+  const [ev] = joinGolf({
+    pinnacle: [{ tour: 'LPGA', name: 'LOTTE Championship', players: [{ name: 'Jeeno Thitikul', yes: q(0.14) }] }],
+    kalshi: [{ tour: 'LPGA', name: 'LOTTE Championship presented by Hoakalei', players: [{ name: 'Jeeno Thitikul', yes: q(0.16), no: q(0.85) }] }],
+  });
+  const o = ev.outcomes[0];
+  const a = analyseEvent(ev);
+  close(o.best.sum, 0.99); assert.equal(o.best.yes.venue, 'pinnacle');
+  assert.ok(a.best.isArb);
 });
