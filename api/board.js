@@ -29,5 +29,6 @@ export default async function handler(req, res) {
 
   games.sort((x, y) => (x.analysis.best?.sum ?? 9) - (y.analysis.best?.sum ?? 9));
   res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=60');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.status(200).json({ updated: new Date().toISOString(), status, games });
 }
