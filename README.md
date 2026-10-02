@@ -1,8 +1,8 @@
-# Arbline
+# xvenue-arb
 
 Compares tennis and golf prices on Polymarket, Kalshi and Pinnacle and flags two-leg arbitrage.
 
-Live: https://arbline.vercel.app
+Live: https://xvenue-arb.vercel.app
 
 ## How it works
 

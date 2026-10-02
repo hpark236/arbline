@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arbline</title>
+<title>xvenue-arb</title>
 <meta name="description" content="Compares tennis and golf prices on Polymarket, Kalshi and Pinnacle and flags two-leg arbitrage.">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<h1>Arbline</h1>
+<h1>xvenue-arb</h1>
 <p class="desc">Compares tennis and golf prices on Polymarket, Kalshi and Pinnacle. Every price is the cost, including fees, of a contract that pays $1. If backing a player to win on one venue and not to win on another costs less than $1 in total, the profit is locked in.</p>
 
 <p class="controls">
@@ -31,7 +31,7 @@
   <li>In tennis, "player does not win" can also be bought as the opponent winning.</li>
   <li>Golf lists players priced at 1% or more. A sum under 1.000 does not account for sportsbook limits, settlement timing, or differences in how venues settle retirements and withdrawals.</li>
 </ul>
-<p class="small muted">Source: <a href="https://github.com/hpark236/arbline">github.com/hpark236/arbline</a></p>
+<p class="small muted">Source: <a href="https://github.com/hpark236/xvenue-arb">github.com/hpark236/xvenue-arb</a></p>
 
 <script type="module">
 import { stakePlan, walkDepth, kalshiFee, polyFee } from './lib/core.js';
